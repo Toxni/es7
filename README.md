@@ -889,17 +889,208 @@ valueOf 方法调用时，执行以下步骤：
 
 除了对象原型外，对象实例不包含任何特定属性。
 
+##19.2 函数对象
+
+### 19.2.1 函数构造器
+
+对象构造器是固有对象 %Object% 的初始值，它是全局对象的一个属性。当它作为构造器被调用的时候可以产生一个新的函数对象。所以函数表达式 Function(...) 与新建实例的方法 new Function(...) 是一样的。
+
+对象构造器被设计为可子类化的，当定义类的时侯，它可以作为 extends 语句的值。若子类构造器想继承某个特定函数，则必须用 super 关键字调用该函数构造器，以生成一个初始化的子类实例。所有的 ECMAScript 句法定义的函数都是 Function 的实例，除了内置子类构造器以外，没有哪个语法是要创建函数子类的。
+
+#### 19.2.1.1 Function ( p1, p2, … , pn, body )
+
+最后一个参数 body 是函数体，前面的所有参数都是函数参数。
+
+当 Function 被调用，且有参数  p1, p2, … , pn, body 时，执行以下步骤。其中 n 值可能为零，且 body 可能也未提供。
+
+1. Let C be the active function object.
+2. Let args be the argumentsList that was passed to this function by [[Call]] or [[Construct]].
+3. Return ? CreateDynamicFunction(C, NewTarget, "normal", args).
+
+* 注意：不强制要求把每个参数都标准化，是否标准化都是可接受的，例如下面三种写法表示一样的含义：
+
+```js
+new Function("a", "b", "c", "return a+b+c")
+new Function("a, b, c", "return a+b+c")
+new Function("a,b", "c", "return a+b+c")
+```
+
+##### 19.2.1.1.1 执行中语义：CreateDynamicFunction(constructor, newTarget, kind, args)
+
+TODO
+
+### 19.2.2 函数构造器的属性
+
+函数构造器本身就是一个内置的函数对象。它内部的 [[Prototype]] 值就是内置对象 %FunctionPrototype%。
+
+函数构造器的 [[Extensible]] 值为 true。
+
+函数构造器有以下属性：
+
+#### 19.2.2.1 Function.length
+
+这是一个值为 1 的数据属性。本属性的特性如下：
+
+```js
+{ [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }
+```
+
+#### 19.2.2.2 Function.prototype
+
+它的值为内置对象 %FunctionPrototype% 并且它的特性如下：
+
+```js
+{ [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: false }
+```
+
+### 19.2.3 函数 Prototype 对象的属性
+
+The Function prototype object is the intrinsic object %FunctionPrototype%. The Function prototype object is itself a built-in function object. When invoked, it accepts any arguments and returns undefined. It does not have a [[Construct]] internal method so it is not a constructor.
+
+NOTE
+The Function prototype object is specified to be a function object to ensure compatibility with ECMAScript code that was created prior to the ECMAScript 2015 specification.
+
+The value of the [[Prototype]] internal slot of the Function prototype object is the intrinsic object %ObjectPrototype%. The initial value of the [[Extensible]] internal slot of the Function prototype object is true.
+
+The Function prototype object does not have a prototype property.
+
+The value of the length property of the Function prototype object is 0.
+
+The value of the name property of the Function prototype object is the empty String.
+
+19.2.3.1Function.prototype.apply ( thisArg, argArray )#
+
+When the apply method is called on an object func with arguments thisArg and argArray, the following steps are taken:
+
+If IsCallable(func) is false, throw a TypeError exception.
+If argArray is null or undefined, then
+Perform PrepareForTailCall().
+Return ? Call(func, thisArg).
+Let argList be ? CreateListFromArrayLike(argArray).
+Perform PrepareForTailCall().
+Return ? Call(func, thisArg, argList).
+NOTE 1
+The thisArg value is passed without modification as the this value. This is a change from Edition 3, where an undefined or null thisArg is replaced with the global object and ToObject is applied to all other values and that result is passed as the this value. Even though the thisArg is passed without modification, non-strict functions still perform these transformations upon entry to the function.
+
+NOTE 2
+If func is an arrow function or a bound function then the thisArg will be ignored by the function [[Call]] in step 5.
+
+19.2.3.2Function.prototype.bind ( thisArg, ...args)#
+
+When the bind method is called with argument thisArg and zero or more args, it performs the following steps:
+
+Let Target be the this value.
+If IsCallable(Target) is false, throw a TypeError exception.
+Let args be a new (possibly empty) List consisting of all of the argument values provided after thisArg in order.
+Let F be ? BoundFunctionCreate(Target, thisArg, args).
+Let targetHasLength be ? HasOwnProperty(Target, "length").
+If targetHasLength is true, then
+Let targetLen be ? Get(Target, "length").
+If Type(targetLen) is not Number, let L be 0.
+Else,
+Let targetLen be ToInteger(targetLen).
+Let L be the larger of 0 and the result of targetLen minus the number of elements of args.
+Else let L be 0.
+Perform ! DefinePropertyOrThrow(F, "length", PropertyDescriptor {[[Value]]: L, [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true}).
+Let targetName be ? Get(Target, "name").
+If Type(targetName) is not String, let targetName be the empty string.
+Perform SetFunctionName(F, targetName, "bound").
+Return F.
+NOTE 1
+Function objects created using Function.prototype.bind are exotic objects. They also do not have a prototype property.
+
+NOTE 2
+If Target is an arrow function or a bound function then the thisArg passed to this method will not be used by subsequent calls to F.
+
+19.2.3.3Function.prototype.call (thisArg, ...args)#
+
+When the call method is called on an object func with argument, thisArg and zero or more args, the following steps are taken:
+
+If IsCallable(func) is false, throw a TypeError exception.
+Let argList be a new empty List.
+If this method was called with more than one argument, then in left to right order, starting with the second argument, append each argument as the last element of argList.
+Perform PrepareForTailCall().
+Return ? Call(func, thisArg, argList).
+NOTE 1
+The thisArg value is passed without modification as the this value. This is a change from Edition 3, where an undefined or null thisArg is replaced with the global object and ToObject is applied to all other values and that result is passed as the this value. Even though the thisArg is passed without modification, non-strict functions still perform these transformations upon entry to the function.
+
+NOTE 2
+If func is an arrow function or a bound function then the thisArg will be ignored by the function [[Call]] in step 5.
+
+19.2.3.4Function.prototype.constructor#
+
+The initial value of Function.prototype.constructor is the intrinsic object %Function%.
+
+19.2.3.5Function.prototype.toString ( )#
+
+When the toString method is called on an object func, the following steps are taken:
+
+If func is a Bound Function exotic object, then
+Return an implementation-dependent String source code representation of func. The representation must conform to the rules below. It is implementation dependent whether the representation includes bound function information or information about the target function.
+If Type(func) is Object and is either a built-in function object or has an [[ECMAScriptCode]] internal slot, then
+Return an implementation-dependent String source code representation of func. The representation must conform to the rules below.
+Throw a TypeError exception.
+ toString Representation Requirements:
+
+The string representation must have the syntax of a FunctionDeclaration, FunctionExpression, GeneratorDeclaration, GeneratorExpression, ClassDeclaration, ClassExpression, ArrowFunction, MethodDefinition, or GeneratorMethod depending upon the actual characteristics of the object.
+The use and placement of white space, line terminators, and semicolons within the representation String is implementation-dependent.
+If the object was defined using ECMAScript code and the returned string representation is not in the form of a MethodDefinition or GeneratorMethod then the representation must be such that if the string is evaluated, using eval in a lexical context that is equivalent to the lexical context used to create the original object, it will result in a new functionally equivalent object. In that case the returned source code must not mention freely any variables that were not mentioned freely by the original function's source code, even if these “extra” names were originally in scope.
+If the implementation cannot produce a source code string that meets these criteria then it must return a string for which eval will throw a SyntaxError exception.
+19.2.3.6Function.prototype [ @@hasInstance ] ( V )#
+
+When the @@hasInstance method of an object F is called with value V, the following steps are taken:
+
+Let F be the this value.
+Return ? OrdinaryHasInstance(F, V).
+The value of the name property of this function is "[Symbol.hasInstance]".
+
+This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: false }.
+
+NOTE
+This is the default implementation of @@hasInstance that most functions inherit. @@hasInstance is called by the instanceof operator to determine whether a value is an instance of a specific constructor. An expression such as
 
 
-# ECMA-262 7ᵗʰ Edition 第 20 章
+            v instanceof F
+          
+evaluates as
 
-> 本文转载自：[众成翻译](http://www.zcfy.cc)
-> 译者：[QAQMiao](http://www.zcfy.cc/@QAQMiao)
-> 链接：[http://www.zcfy.cc/article/1401](http://www.zcfy.cc/article/1401)
-> 原文：[http://www.ecma-international.org/ecma-262/7.0/#sec-numbers-and-dates](http://www.ecma-international.org/ecma-262/7.0/#sec-numbers-and-dates)
+
+            F[@@hasInstance](v)
+          
+A constructor function can control which objects are recognized as its instances by instanceof by exposing a different @@hasInstance method on the function.
+
+This property is non-writable and non-configurable to prevent tampering that could be used to globally expose the target function of a bound function.
+
+19.2.4Function Instances#
+
+Every function instance is an ECMAScript function object and has the internal slots listed in Table 27. Function instances created using the  Function.prototype.bind method (19.2.3.2) have the internal slots listed in Table 28.
+
+The Function instances have the following properties:
+
+19.2.4.1length#
+
+The value of the length property is an integer that indicates the typical number of arguments expected by the function. However, the language permits the function to be invoked with some other number of arguments. The behaviour of a function when invoked on a number of arguments other than the number specified by its length property depends on the function. This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.
+
+19.2.4.2name#
+
+The value of the name property is an String that is descriptive of the function. The name has no semantic significance but is typically a variable or property name that is used to refer to the function at its point of definition in ECMAScript code. This property has the attributes { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.
+
+Anonymous functions objects that do not have a contextual name associated with them by this specification do not have a name own property but inherit the  name property of %FunctionPrototype%.
+
+19.2.4.3prototype#
+
+Function instances that can be used as a constructor have a prototype property. Whenever such a function instance is created another ordinary object is also created and is the initial value of the function's prototype property. Unless otherwise specified, the value of the prototype property is used to initialize the [[Prototype]] internal slot of the object created when that function is invoked as a constructor.
+
+This property has the attributes { [[Writable]]: true, [[Enumerable]]: false, [[Configurable]]: false }.
+
+NOTE
+Function objects created using Function.prototype.bind, or by evaluating a MethodDefinition (that are not a GeneratorMethod) or an ArrowFunction grammar production do not have a prototype property.
+
+
+
 
 # 20 Number 和 Date
----
+
 ## 20.1 Number 对象
 
 ### 20.1.1 Number 构造函数
@@ -1622,7 +1813,7 @@ Math.round(3.5) 返回 4，但 Math.round(–3.5) 返回 –3.
 * 如果 x 是负数并且不为 -0，返回结果是 -1。
 * 如果 x 是正数并且不为 +0，返回结果是 +1。
 
-# 20.2.2.30Math.sin ( <var>x</var> )
+# 20.2.2.30 Math.sin ( <var>x</var> )
 
 返回 x 的正弦的依赖实现的近似值。参数被当做是弧度值。
 
